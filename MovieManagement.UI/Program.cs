@@ -10,14 +10,45 @@ namespace MovieManagementUI
         static RealizadorService realizadorService;
         static void Main(string[] args)
         {
-            FilmeRepository filmeRepo = new FilmeRepository();
-            filmeService = new FilmeService(filmeRepo);
+            Console.Clear();
+            Console.WriteLine("===================================");
+            Console.WriteLine("     MOVIE MANAGEMENT SYSTEM");
+            Console.WriteLine("===================================");
+            Console.WriteLine();
+            Console.WriteLine("Escolha o tipo de persistência:");
+            Console.WriteLine("1 - Memória");
+            Console.WriteLine("2 - SQLite");
+            Console.Write("\nOpção: ");
 
-            CategoriaRepository categoriaRepo = new CategoriaRepository();
-            categoriaService  = new CategoriaService(categoriaRepo);
+            string opcaoPersistencia = Console.ReadLine() ?? "";
 
-            RealizadorRepository realizadorRepo = new RealizadorRepository();
-            realizadorService  = new RealizadorService(realizadorRepo);
+            if (opcaoPersistencia == "2")
+            {
+                var filmeRepo = new FilmeSQLiteRepository();
+                var categoriaRepo = new CategoriaSQLiteRepository();
+                var realizadorRepo = new RealizadorSQLiteRepository();
+
+                categoriaService = new CategoriaService(categoriaRepo);
+                realizadorService = new RealizadorService(realizadorRepo);
+                filmeService = new FilmeService(filmeRepo, categoriaRepo, realizadorRepo);
+
+                Console.WriteLine("\nPersistência SQLite selecionada.");
+            }
+            else
+            {
+                var filmeRepo = new FilmeRepository();
+                var categoriaRepo = new CategoriaRepository();
+                var realizadorRepo = new RealizadorRepository();
+
+                categoriaService = new CategoriaService(categoriaRepo);
+                realizadorService = new RealizadorService(realizadorRepo);
+                filmeService = new FilmeService(filmeRepo, categoriaRepo, realizadorRepo);
+
+                Console.WriteLine("\nPersistência em memória selecionada.");
+            }
+
+            Console.WriteLine("\nPrima qualquer tecla para continuar...");
+            Console.ReadKey();
 
             MenuPrincipal();
 
@@ -101,6 +132,21 @@ namespace MovieManagementUI
                     Console.WriteLine("═══ ADICIONAR FILME ═══\n");
                     Console.ResetColor();
 
+                    var categorias = categoriaService.ListarTodos();
+                    var realizadores = realizadorService.ListarTodos();
+
+                    if (categorias.Count == 0 || realizadores.Count == 0)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Antes de adicionar um filme, é necessário cadastrar pelo menos:");
+                        Console.WriteLine("- 1 categoria");
+                        Console.WriteLine("- 1 realizador");
+                        Console.ResetColor();
+
+                        Console.ReadKey();
+                        continue;
+                    }
+
                     Console.Write("Título: ");
                     string titulo = Console.ReadLine();
 
@@ -148,6 +194,15 @@ namespace MovieManagementUI
                     Console.Write("Língua: ");
                     string lingua = Console.ReadLine();
 
+                    if (string.IsNullOrWhiteSpace(lingua))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("\nErro: A língua é obrigatória.");
+                        Console.ResetColor();
+                        Console.ReadKey();
+                        continue;
+                    }
+
                     int classificacao;
 
                     while (true)
@@ -162,9 +217,33 @@ namespace MovieManagementUI
                         Console.ResetColor();
                     }
 
+                    Console.Write("Categoria: ");
+                    string categoria = Console.ReadLine();
+
+                    if (string.IsNullOrWhiteSpace(categoria))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("\nErro: A categoria é obrigatória.");
+                        Console.ResetColor();
+                        Console.ReadKey();
+                        continue;
+                    }
+
+                    Console.Write("Realizador: ");
+                    string realizador = Console.ReadLine();
+
+                    if (string.IsNullOrWhiteSpace(realizador))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("\nErro: O realizador é obrigatório.");
+                        Console.ResetColor();
+                        Console.ReadKey();
+                        continue;
+                    }
+
                     try
                     {
-                        filmeService.AdicionarFilme(titulo, ano, lingua, classificacao);
+                        filmeService.AdicionarFilme(titulo, ano, lingua, classificacao, categoria, realizador);
                         Console.ForegroundColor = ConsoleColor.Green;
                         Console.WriteLine("\nFilme adicionado com sucesso!");
                         Console.ResetColor();
@@ -197,7 +276,7 @@ namespace MovieManagementUI
                         foreach (var f in lista)
                         {
                             Console.WriteLine(
-                                $"{f.Id} | {f.Titulo} | {f.Ano} | {f.Lingua} | {f.Classificacao}"
+                                $"{f.Id} | {f.Titulo} | {f.Ano} | {f.Lingua} | {f.Classificacao} | {f.Categoria?.Nome} | {f.Realizador?.Nome}"
                             );
                         }
                     }
@@ -243,6 +322,8 @@ namespace MovieManagementUI
                         Console.WriteLine($"Ano: {filme.Ano}");
                         Console.WriteLine($"Língua: {filme.Lingua}");
                         Console.WriteLine($"Classificação: {filme.Classificacao}");
+                        Console.WriteLine($"Categoria: {filme.Categoria?.Nome}");
+                        Console.WriteLine($"Realizador: {filme.Realizador?.Nome}");
                     }
 
                     Console.ReadKey();
