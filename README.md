@@ -2,12 +2,17 @@
 
 > Aplicação de gestão de filmes desenvolvida em C# com arquitetura em camadas, persistência dual (memória + SQLite) e boas práticas de desenvolvimento.
 
+![C#](https://img.shields.io/badge/C%23-512BD4?style=flat&logo=dotnet&logoColor=white)
+![.NET 10](https://img.shields.io/badge/.NET_10-512BD4?style=flat&logo=dotnet&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat&logo=sqlite&logoColor=white)
+
 ---
 
 ## 📋 Índice
 
 - [Sobre o Projeto](#-sobre-o-projeto)
 - [Arquitetura](#-arquitetura)
+- [Modelo de domínio](#-modelo-de-domínio)
 - [Tecnologias](#-tecnologias)
 - [Funcionalidades](#-funcionalidades)
 - [Regras de Negócio](#-regras-de-negócio)
@@ -36,15 +41,82 @@ MovieManagement
 └── MovieManagement.Domain      → Entidades e interfaces (contratos)
 ```
 
-A dependência flui sempre de cima para baixo:
+As dependências entre camadas:
 
+```mermaid
+flowchart TB
+    UI["🖥️ <b>MovieManagement.UI</b><br/>Menus de consola · Program.cs<br/><i>escolhe a persistência e liga as camadas</i>"]
+    BUS["⚙️ <b>MovieManagement.Business</b><br/>FilmeService · CategoriaService · RealizadorService<br/><i>validações e regras de negócio</i>"]
+    DATA["💾 <b>MovieManagement.Data</b><br/>Repositórios em memória · Repositórios SQLite"]
+    DOM["📦 <b>MovieManagement.Domain</b><br/>Entidades · Interfaces dos repositórios"]
+
+    UI --> BUS
+    BUS --> DATA
+    UI -.-> DOM
+    BUS -.-> DOM
+    DATA -.->|implementa as interfaces| DOM
 ```
-UI → Business → Data
-         ↓
-       Domain  ←  (todas as camadas dependem de Domain)
+
+Os services recebem as **interfaces** (`IFilmeRepository`, `ICategoriaRepository`, `IRealizadorRepository`) pelo construtor e não conhecem a implementação concreta:
+
+```mermaid
+classDiagram
+    direction LR
+    class IFilmeRepository {
+        <<interface>>
+        +Adicionar(Filme)
+        +ObterTodos() List~Filme~
+        +ObterPorTitulo(string) Filme
+        +Remover(int) bool
+        +ExisteFilmeComTitulo(string) bool
+    }
+    class FilmeRepository {
+        List~Filme~ em memória
+    }
+    class FilmeSQLiteRepository {
+        Microsoft.Data.Sqlite
+    }
+    class FilmeService {
+        +AdicionarFilme(...)
+        +ListarTodos() List~Filme~
+        +ProcurarFilme(titulo)
+        +RemoverFilme(id)
+    }
+    IFilmeRepository <|.. FilmeRepository
+    IFilmeRepository <|.. FilmeSQLiteRepository
+    FilmeService --> IFilmeRepository : injeção pelo construtor
 ```
 
 > A arquitetura permite **trocar a implementação de persistência sem alterar** a camada UI, Business ou Domain, basta substituir o repositório injetado.
+
+---
+
+## 🧩 Modelo de domínio
+
+```mermaid
+classDiagram
+    direction LR
+    class Filme {
+        +int Id
+        +string Titulo
+        +int Ano
+        +string Lingua
+        +int Classificacao
+        +int CategoriaId
+        +int RealizadorId
+    }
+    class Categoria {
+        +int Id
+        +string Nome
+    }
+    class Realizador {
+        +int Id
+        +string Nome
+        +string Pais
+    }
+    Filme "*" --> "1" Categoria
+    Filme "*" --> "1" Realizador
+```
 
 ---
 
@@ -131,7 +203,7 @@ A troca é transparente para toda a aplicação — apenas o `Program.cs` instan
 
 ```bash
 # Clonar o repositório
-git clone https://github.com/<username>/MovieManagement.git
+git clone https://github.com/hannasampaio/MovieManagement.git
 
 # Entrar na pasta da solução
 cd MovieManagement
@@ -192,4 +264,6 @@ MovieManagement/
 
 ---
 
-*Projeto desenvolvido no âmbito da formação Software Developer 2026.*
+*Projeto desenvolvido no âmbito da formação Software Developer 2026 (CESAE Digital).*
+
+Desenvolvido por **Hanna Sampaio** · [LinkedIn](https://www.linkedin.com/in/hannasampaio7/) · [GitHub](https://github.com/hannasampaio)
